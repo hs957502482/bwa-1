@@ -36,6 +36,7 @@
 #include "utils.h"
 #include "rle.h"
 #include "rope.h"
+#include <math.h>
 
 #ifdef _DIVBWT
 #include "divsufsort.h"
@@ -208,10 +209,12 @@ int bwa_bwt2sa(int argc, char *argv[]) // the "bwt2sa" command
 
 int bwa_index(int argc, char *argv[]) // the "index" command
 {
+	int sa_intval = 0;
 	int c, algo_type = BWTALGO_AUTO, is_64 = 0, block_size = 10000000;
 	char *prefix = 0, *str;
-	while ((c = getopt(argc, argv, "6a:p:b:")) >= 0) {
+	while ((c = getopt(argc, argv, "6a:p:b:S:C:")) >= 0) {
 		switch (c) {
+		case 'S': sa_intval = atoi(optarg); break;  //sa_interval = 2^sa_intval 
 		case 'a': // if -a is not set, algo_type will be determined later
 			if (strcmp(optarg, "rb2") == 0) algo_type = BWTALGO_RB2;
 			else if (strcmp(optarg, "bwtsw") == 0) algo_type = BWTALGO_BWTSW;
@@ -220,7 +223,9 @@ int bwa_index(int argc, char *argv[]) // the "index" command
 			break;
 		case 'p': prefix = strdup(optarg); break;
 		case '6': is_64 = 1; break;
-		case 'b':
+		case 'C': OCC_INTV_SHIFT = atoi(optarg);break;//OCC_INTV_SHIFT
+
+		case 'b': 
 			block_size = strtol(optarg, &str, 10);
 			if (*str == 'G' || *str == 'g') block_size *= 1024 * 1024 * 1024;
 			else if (*str == 'M' || *str == 'm') block_size *= 1024 * 1024;
@@ -229,7 +234,9 @@ int bwa_index(int argc, char *argv[]) // the "index" command
 		default: return 1;
 		}
 	}
-
+	double tempocc = OCC_INTV_SHIFT;
+	OCC_INTERVAL  = (int)pow(2,tempocc);
+	OCC_INTV_MASK = OCC_INTERVAL - 1;
 	if (optind + 1 > argc) {
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Usage:   bwa index [options] <in.fasta>\n\n");
@@ -247,12 +254,13 @@ int bwa_index(int argc, char *argv[]) // the "index" command
 		strcpy(prefix, argv[optind]);
 		if (is_64) strcat(prefix, ".64");
 	}
-	bwa_idx_build(argv[optind], prefix, algo_type, block_size);
+
+	bwa_idx_build(argv[optind], prefix, algo_type, block_size, sa_intval);
 	free(prefix);
 	return 0;
 }
 
-int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_size)
+int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_size, int sa_intval)
 {
 	extern void bwa_pac_rev_core(const char *fn, const char *fn_rev);
 
@@ -273,7 +281,7 @@ int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_s
 		err_gzclose(fp);
 	}
 	if (algo_type == 0) algo_type = l_pac > 50000000? 2 : 3; // set the algorithm for generating BWT
-	{  /构建BWT索引
+	{  //构建BWT索引
 		strcpy(str, prefix); strcat(str, ".pac");//参考序列
 		strcpy(str2, prefix); strcat(str2, ".bwt");//BWT变换
 		t = clock();
@@ -313,7 +321,7 @@ int bwa_idx_build(const char *fa, const char *prefix, int algo_type, int block_s
 		t = clock();
 		if (bwa_verbose >= 3) fprintf(stderr, "[bwa_index] Construct SA from BWT and Occ... ");
 		bwt = bwt_restore_bwt(str);
-		bwt_cal_sa(bwt, 32);//SA_INTERVAL默认32   // 计算SA索引
+		bwt_cal_sa(bwt, (int)pow(2,sa_intval));//SA_INTERVAL默认32   // 计算SA索引
 		bwt_dump_sa(str3, bwt);
 		bwt_destroy(bwt);
 		if (bwa_verbose >= 3) fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);

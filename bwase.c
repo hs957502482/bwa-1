@@ -616,7 +616,7 @@ static void *worker_se(void *data)
 
 
 
-void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_fa, int n_occ, const char *rg_line)
+void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_fa, int n_occ, const char *rg_line, int nt)
 {
 	double ta,tb,tc,td,te,tf=0;
 
@@ -676,7 +676,7 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 		free(str);
 		
 	}
-	opt->n_threads = 4;//线程数为4
+	opt->n_threads = nt;//线程数
 	int sa_intv = bwt->sa_intv;
 	ubyte_t *pacseq;////存储ref的信息
 	pacseq = (ubyte_t*)calloc(bns->l_pac/4+1, 1);
@@ -813,18 +813,19 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 
 int bwa_sai2sam_se(int argc, char *argv[])
 {
+	int nt = 1;
 	int c, n_occ = 3;
 	char *prefix, *rg_line = 0;
-	while ((c = getopt(argc, argv, "hn:f:r:o:")) >= 0) {
+	while ((c = getopt(argc, argv, "hn:f:r:C:t:")) >= 0) {
 		switch (c) {
 		case 'h': break;
-		case 'o': OCC_INTV_SHIFT = atoi(optarg);break;
+		case 'C': OCC_INTV_SHIFT = atoi(optarg);break;
 		case 'r':
 			if ((rg_line = bwa_set_rg(optarg)) == 0) return 1;
 			break;
 		case 'n': n_occ = atoi(optarg); break;
 		case 'f': xreopen(optarg, "w", stdout); break;
-		//case 't': opt->n_threads = atoi(optarg); break;
+		case 't': nt = atoi(optarg); break;
 		default: return 1;
 		}
 	}
@@ -839,7 +840,7 @@ int bwa_sai2sam_se(int argc, char *argv[])
 		fprintf(stderr, "[%s] fail to locate the index\n", __func__);
 		return 1;
 	}
-	bwa_sai2sam_se_core(prefix, argv[optind+1], argv[optind+2], n_occ, rg_line);
+	bwa_sai2sam_se_core(prefix, argv[optind+1], argv[optind+2], n_occ, rg_line,nt);
 	free(prefix);
 	return 0;
 }

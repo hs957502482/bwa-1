@@ -276,13 +276,13 @@ int bwa_aln(int argc, char *argv[])
 	char *prefix;
 
 	opt = gap_init_opt();
-	while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:LR:m:t:NM:O:E:q:f:b012IYB:")) >= 0) {
+	while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:LR:m:t:NM:O:E:q:f:b012IYB:C:")) >= 0) {
 		switch (c) {
 		case 'n':
 			if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
 			else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
 			break;
-		//case 'o': opt->max_gapo = atoi(optarg); break;
+		case 'o': opt->max_gapo = atoi(optarg); break;
 		case 'e': opte = atoi(optarg); break;
 		case 'M': opt->s_mm = atoi(optarg); break;
 		case 'O': opt->s_gapo = atoi(optarg); break;
@@ -305,7 +305,7 @@ int bwa_aln(int argc, char *argv[])
 		case 'I': opt->mode |= BWA_MODE_IL13; break;
 		case 'Y': opt->mode |= BWA_MODE_CFY; break;
 		case 'B': opt->mode |= atoi(optarg) << 24; break;
-		case 'o': OCC_INTV_SHIFT = atoi(optarg);break;//OCC_INTV_SHIFT
+		case 'C': OCC_INTV_SHIFT = atoi(optarg);break;//OCC_INTV_SHIFT
 
 		default: return 1;
 		}
